@@ -11,74 +11,82 @@
   let charHeight = 50;
 
   let board = {
-    a: { coord: [canvasWidth / 2, 50], paths: ['b', 'c', 'd'], jumpPaths: ['e', 'g'] },
-    b: { coord: [canvasWidth / 2 - 75, 150], paths: ['a', 'c', 'e'], jumpPaths: [] },
-    c: { coord: [canvasWidth / 2, 150], paths: ['a', 'b', 'd'], jumpPaths: [] },
-    d: { coord: [canvasWidth / 2 + 75, 150], paths: ['a', 'c', 'g'], jumpPaths: [] },
-    e: { coord: [canvasWidth / 2 - 150, canvasHeight / 2], paths: ['b', 'f'], jumpPaths: ['g'] },
-    f: { coord: [canvasWidth / 2, 250], paths: ['e', 'g', 'i'], jumpPaths: [] },
-    g: { coord: [canvasWidth / 2 + 150, canvasHeight / 2], paths: ['d', 'f'], jumpPaths: ['e'] },
-    h: { coord: [canvasWidth / 2 - 150, 400], paths: ['i'], jumpPaths: ['j'] },
-    i: { coord: [canvasWidth / 2, 400], paths: ['f', 'h', 'j'], jumpPaths: [] },
-    j: { coord: [canvasWidth / 2 + 150, 400], paths: ['i'], jumpPaths: ['h'] }
+    a: { id: 'a', coord: [canvasWidth / 2, 50], paths: ['b', 'c', 'd'], jumpPaths: ['e', 'g'] },
+    b: { id: 'b', coord: [canvasWidth / 2 - 75, 150], paths: ['a', 'c', 'e'], jumpPaths: [] },
+    c: { id: 'c', coord: [canvasWidth / 2, 150], paths: ['a', 'b', 'd'], jumpPaths: [] },
+    d: { id: 'd', coord: [canvasWidth / 2 + 75, 150], paths: ['a', 'c', 'g'], jumpPaths: [] },
+    e: { id: 'e', coord: [canvasWidth / 2 - 150, canvasHeight / 2], paths: ['b', 'f'], jumpPaths: ['g'] },
+    f: { id: 'f', coord: [canvasWidth / 2, 250], paths: ['e', 'g', 'i'], jumpPaths: [] },
+    g: { id: 'g', coord: [canvasWidth / 2 + 150, canvasHeight / 2], paths: ['d', 'f'], jumpPaths: ['e'] },
+    h: { id: 'h', coord: [canvasWidth / 2 - 150, 400], paths: ['i'], jumpPaths: ['j'] },
+    i: { id: 'i', coord: [canvasWidth / 2, 400], paths: ['f', 'h', 'j'], jumpPaths: [] },
+    j: { id: 'j', coord: [canvasWidth / 2 + 150, 400], paths: ['i'], jumpPaths: ['h'] }
   };
+
+  let m = { x: 0, y: 0 };
 
   onMount(() => {
     ctx = canvas.getContext('2d');
-    drawBoard(ctx);
+    drawBoard();
     newGame();
   });
 
-  const drawLine = (ctx, start, end) => {
+  const drawLine = (start, end) => {
     ctx.beginPath();
     ctx.moveTo(...start.coord);
     ctx.lineTo(...end.coord);
     ctx.stroke();
   };
 
-  const drawCharacter = (ctx, position) => {
-    let [x, y] = position.coord;
+  const drawCharacter = (position) => {
+    let [x, y] = board[position].coord;
     let image = new Image();
-    image.src = `${position.char}.png`;
+    image.src = `${board[position].char}.png`;
     image.onload = () =>
       ctx.drawImage(image, x - charWidth / 2, y - charHeight / 2, charWidth, charHeight);
   };
 
-  const drawBoard = (ctx) => {
-    const options = { lineCap: 'round', lineJoin: 'round', lineWidth: 3 };
+  const drawBoard = () => {
+    const options = { lineCap: 'round', lineJoin: 'round', lineWidth: 3, strokeStyle: '#000000' };
     Object.assign(ctx, options);
-    drawLine(ctx, board.a, board.e);
-    drawLine(ctx, board.a, board.c);
-    drawLine(ctx, board.a, board.g);
-    drawLine(ctx, board.b, board.d);
-    drawLine(ctx, board.e, board.g);
-    drawLine(ctx, board.f, board.i);
-    drawLine(ctx, board.h, board.j);
+    drawLine(board.a, board.e);
+    drawLine(board.a, board.c);
+    drawLine(board.a, board.g);
+    drawLine(board.b, board.d);
+    drawLine(board.e, board.g);
+    drawLine(board.f, board.i);
+    drawLine(board.h, board.j);
   };
 
-  const updateBoard = (ctx, board) => {
+  const clearBoard = () => {
+    ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+  };
+
+  const updateBoard = () => {
     drawBoard(ctx);
-    for (const [_, v] of Object.entries(board)) {
+    for (const [k, v] of Object.entries(board)) {
       if (v.char) {
-        drawCharacter(ctx, v);
+        drawCharacter(k);
       }
     }
   };
 
-  const highightPositon = (ctx, position) => {
+  const highightPositon = (position) => {
     const options = { lineWidth: 2, strokeStyle: '#16a34a' };
     Object.assign(ctx, options);
-    let [x, y] = position.coord;
+    let [x, y] = board[position].coord;
     ctx.beginPath();
     ctx.rect(x - charWidth / 2, y - charHeight / 2, charWidth, charHeight);
     ctx.stroke();
   };
 
-  const moveChar = (ctx, c, from, to) => {
-    clearBoard();
-    board[from].char = '';
-    board[to].char = c;
-    updateBoard(ctx, board);
+  const moveChar = (c, from, to) => {
+    if (from.paths.includes(to.id)) {
+      clearBoard();
+      from.char = '';
+      to.char = c;
+      updateBoard();
+    }
   };
 
   const newGame = () => {
@@ -93,11 +101,36 @@
     board.h.char = 'goat';
     board.i.char = 'goat';
     board.j.char = 'goat';
-    updateBoard(ctx, board);
+    updateBoard();
   };
 
-  const clearBoard = () => {
-    ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+  const getMousePos = (event) => {
+    let rect = canvas.getBoundingClientRect();
+    m.x = Math.round(event.clientX - rect.left);
+    m.y = Math.round(event.clientY - rect.top);
+  };
+
+  const highlightChar = () => {
+    for (const [k, v] of Object.entries(board)) {
+      if (v.char) {
+        let [x, y] = v.coord;
+        if (
+          m.x > x - charWidth / 2 &&
+          m.x < x + charWidth / 2 &&
+          m.y > y - charHeight / 2 &&
+          m.y < y + charHeight / 2
+        ) {
+          highightPositon(k);
+          break;
+        }
+      }
+    }
+  };
+
+  const removeHighlight = () => {
+    clearBoard();
+    drawBoard();
+    updateBoard();
   };
 </script>
 
@@ -109,7 +142,13 @@
     </div>
 
     <div class="bg-slate-500">
-      <canvas width={canvasWidth} height={canvasHeight} bind:this={canvas} />
+      <canvas
+        on:mousemove={getMousePos}
+        on:mousedown={highlightChar}
+        width={canvasWidth}
+        height={canvasHeight}
+        bind:this={canvas}
+      />
     </div>
 
     <div class="flex flex-row justify-center items-center bg-slate-600 ">
