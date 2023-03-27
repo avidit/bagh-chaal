@@ -11,23 +11,74 @@
   let charHeight = 50;
 
   let board = {
-    a: { id: 'a', coord: [canvasWidth / 2, 50], paths: ['b', 'c', 'd'], jumpPaths: ['e', 'g'] },
-    b: { id: 'b', coord: [canvasWidth / 2 - 75, 150], paths: ['a', 'c', 'e'], jumpPaths: [] },
-    c: { id: 'c', coord: [canvasWidth / 2, 150], paths: ['a', 'b', 'd'], jumpPaths: [] },
-    d: { id: 'd', coord: [canvasWidth / 2 + 75, 150], paths: ['a', 'c', 'g'], jumpPaths: [] },
-    e: { id: 'e', coord: [canvasWidth / 2 - 150, canvasHeight / 2], paths: ['b', 'f'], jumpPaths: ['g'] },
-    f: { id: 'f', coord: [canvasWidth / 2, 250], paths: ['e', 'g', 'i'], jumpPaths: [] },
-    g: { id: 'g', coord: [canvasWidth / 2 + 150, canvasHeight / 2], paths: ['d', 'f'], jumpPaths: ['e'] },
-    h: { id: 'h', coord: [canvasWidth / 2 - 150, 400], paths: ['i'], jumpPaths: ['j'] },
-    i: { id: 'i', coord: [canvasWidth / 2, 400], paths: ['f', 'h', 'j'], jumpPaths: [] },
-    j: { id: 'j', coord: [canvasWidth / 2 + 150, 400], paths: ['i'], jumpPaths: ['h'] }
+    a: {
+      id: 'a',
+      coord: [canvasWidth / 2, 50],
+      paths: ['b', 'c', 'd'],
+      jumps: { e: 'b', g: 'd' }
+    },
+    b: {
+      id: 'b',
+      coord: [canvasWidth / 2 - 75, 150],
+      paths: ['a', 'c', 'e'],
+      jumps: { d: 'c' }
+    },
+    c: {
+      id: 'c',
+      coord: [canvasWidth / 2, 150],
+      paths: ['a', 'b', 'd'],
+      jumps: {}
+    },
+    d: {
+      id: 'd',
+      coord: [canvasWidth / 2 + 75, 150],
+      paths: ['a', 'c', 'g'],
+      jumps: {}
+    },
+    e: {
+      id: 'e',
+      coord: [canvasWidth / 2 - 150, canvasHeight / 2],
+      paths: ['b', 'f'],
+      jumps: { a: 'b', g: 'f' }
+    },
+    f: {
+      id: 'f',
+      coord: [canvasWidth / 2, 250],
+      paths: ['e', 'g', 'i'],
+      jumps: {}
+    },
+    g: {
+      id: 'g',
+      coord: [canvasWidth / 2 + 150, canvasHeight / 2],
+      paths: ['d', 'f'],
+      jumps: { a: 'd', e: 'f' }
+    },
+    h: {
+      id: 'h',
+      coord: [canvasWidth / 2 - 150, 400],
+      paths: ['i'],
+      jumps: { j: 'i' }
+    },
+    i: {
+      id: 'i',
+      coord: [canvasWidth / 2, 400],
+      paths: ['f', 'h', 'j'],
+      jumps: {}
+    },
+    j: {
+      id: 'j',
+      coord: [canvasWidth / 2 + 150, 400],
+      paths: ['i'],
+      jumps: { h: 'i' }
+    }
   };
 
   let m = { x: 0, y: 0 };
 
+  let selectedChar, selectedPos;
+
   onMount(() => {
     ctx = canvas.getContext('2d');
-    drawBoard();
     newGame();
   });
 
@@ -63,7 +114,6 @@
   };
 
   const updateBoard = () => {
-    drawBoard(ctx);
     for (const [k, v] of Object.entries(board)) {
       if (v.char) {
         drawCharacter(k);
@@ -71,26 +121,42 @@
     }
   };
 
-  const highightPositon = (position) => {
+  const select = (position) => {
+    clearBoard();
+    drawBoard();
     const options = { lineWidth: 2, strokeStyle: '#16a34a' };
     Object.assign(ctx, options);
     let [x, y] = board[position].coord;
     ctx.beginPath();
     ctx.rect(x - charWidth / 2, y - charHeight / 2, charWidth, charHeight);
     ctx.stroke();
+    updateBoard();
   };
 
-  const moveChar = (c, from, to) => {
-    if (from.paths.includes(to.id)) {
-      clearBoard();
-      from.char = '';
-      to.char = c;
-      updateBoard();
-    }
+  const isEmpty = (position) => !board[position].char;
+  const canMove = (from, to) => isEmpty(to) && board[from].paths.includes(to);
+  const canJump = (from, to) => isEmpty(to) && Object.keys(board[from].jumps).includes(to);
+
+  const move = (character, from, to) => {
+    clearBoard();
+    drawBoard();
+    board[from].char = '';
+    board[to].char = character;
+    updateBoard();
+  };
+
+  const jump = (from, to) => {
+    clearBoard();
+    drawBoard();
+    board[from].char = '';
+    board[to].char = 'tiger';
+    board[board[from].jumps[to]].char = '';
+    updateBoard();
   };
 
   const newGame = () => {
     clearBoard();
+    drawBoard();
     board.a.char = 'tiger';
     board.b.char = '';
     board.c.char = '';
@@ -102,35 +168,47 @@
     board.i.char = 'goat';
     board.j.char = 'goat';
     updateBoard();
+    selectedChar = '';
+    selectedPos = '';
   };
 
-  const getMousePos = (event) => {
-    let rect = canvas.getBoundingClientRect();
-    m.x = Math.round(event.clientX - rect.left);
-    m.y = Math.round(event.clientY - rect.top);
-  };
+  const isPosition = (x, y) =>
+    m.x > x - charWidth / 2 &&
+    m.x < x + charWidth / 2 &&
+    m.y > y - charHeight / 2 &&
+    m.y < y + charHeight / 2;
 
-  const highlightChar = () => {
+  const getPosition = () => {
     for (const [k, v] of Object.entries(board)) {
-      if (v.char) {
-        let [x, y] = v.coord;
-        if (
-          m.x > x - charWidth / 2 &&
-          m.x < x + charWidth / 2 &&
-          m.y > y - charHeight / 2 &&
-          m.y < y + charHeight / 2
-        ) {
-          highightPositon(k);
-          break;
-        }
+      let [x, y] = v.coord;
+      if (isPosition(x, y)) {
+        return k;
       }
     }
   };
 
-  const removeHighlight = () => {
-    clearBoard();
-    drawBoard();
-    updateBoard();
+  const handleClick = (event) => {
+    let rect = canvas.getBoundingClientRect();
+    m.x = Math.round(event.clientX - rect.left);
+    m.y = Math.round(event.clientY - rect.top);
+
+    let position = getPosition();
+    if (!position) {
+      return;
+    } else if (board[position].char) {
+      select(position);
+      selectedChar = board[position].char;
+      selectedPos = position;
+    } else if (selectedChar && canMove(selectedPos, position)) {
+      move(selectedChar, selectedPos, position);
+      selectedChar = '';
+      selectedPos = '';
+    } else if (selectedChar === 'tiger' && canJump(selectedPos, position)) {
+      jump(selectedPos, position);
+      selectedChar = '';
+      selectedPos = '';
+    } else {
+    }
   };
 </script>
 
@@ -143,8 +221,7 @@
 
     <div class="bg-slate-500">
       <canvas
-        on:mousemove={getMousePos}
-        on:mousedown={highlightChar}
+        on:mousedown={handleClick}
         width={canvasWidth}
         height={canvasHeight}
         bind:this={canvas}
