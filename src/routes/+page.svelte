@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
 
+  let menu = true;
   let canvas;
   let ctx;
 
@@ -76,11 +77,14 @@
   let m = { x: 0, y: 0 };
 
   let selectedChar, selectedPos;
+  let playAs = 'goat';
 
   onMount(() => {
     ctx = canvas.getContext('2d');
     newGame();
   });
+
+  const toggleMenu = () => (menu = !menu);
 
   const drawLine = (start, end) => {
     ctx.beginPath();
@@ -212,7 +216,45 @@
   };
 </script>
 
-<div class="container flex justify-center">
+{#if menu}
+  <div id="menu" class="w-full h-full bg-gray-800 bg-opacity-70 top-0 fixed">
+    <div class="flex justify-center items-center h-screen">
+      <div class="flex flex-col items-center border bg-gray-800 text-white px-10 py-10 rounded-lg">
+        <p class="text-lg font-bold">Play as:</p>
+        <div class="form-check">
+          <input
+            class="form-check-input appearance-none rounded-full h-4 w-4 border bg-white checked:bg-blue-600 transition duration-200 cursor-pointer"
+            type="radio"
+            name="playAs"
+            id="playAsTiger"
+            bind:group={playAs}
+            value="tiger"
+          />
+          <label class="form-check-label" for="playAsTiger">Tiger</label>
+        </div>
+        <div class="form-check">
+          <input
+            class="form-check-input appearance-none rounded-full h-4 w-4 border bg-white checked:bg-blue-600 transition duration-200 cursor-pointer"
+            type="radio"
+            name="playAs"
+            id="playAsGoat"
+            bind:group={playAs}
+            value="goat"
+          />
+          <label class="form-check-label inline-block text-white" for="playAsGoat">Goat</label>
+        </div>
+
+        <button
+          on:click={toggleMenu}
+          class="m-5 bg-blue-500 hover:bg-blue-700 text-white font-bold px-5 py-1 rounded"
+          >Start</button
+        >
+      </div>
+    </div>
+  </div>
+{/if}
+
+<div class="flex justify-center py-10">
   <div class="box-border border-slate-800 border-8 rounded-md">
     <div class="bg-slate-600 text-center text-gray-800 pt-5 pb-0">
       <p class="text-4xl font-bold font-sans">Baghchal</p>
@@ -229,32 +271,9 @@
     </div>
 
     <div class="flex flex-row justify-center items-center bg-slate-600 ">
-      <div class="m-5">
-        <p class="text-lg text-gray-800 font-bold">Play as:</p>
-        <div class="form-check">
-          <input
-            class="form-check-input appearance-none rounded-full h-4 w-4 border bg-white checked:bg-blue-600 transition duration-200 cursor-pointer"
-            type="radio"
-            name="playAs"
-            id="playAsTiger"
-          />
-          <label class="form-check-label text-gray-800" for="playAsTiger">Tiger</label>
-        </div>
-        <div class="form-check">
-          <input
-            class="form-check-input appearance-none rounded-full h-4 w-4 border bg-white checked:bg-blue-600 transition duration-200 cursor-pointer"
-            type="radio"
-            name="playAs"
-            id="playAsGoat"
-            checked
-          />
-          <label class="form-check-label inline-block text-gray-800" for="playAsGoat">Goat</label>
-        </div>
-      </div>
-
       <button
-        on:click={newGame}
-        class="m-10 bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-4 rounded"
+        on:click={toggleMenu}
+        class="m-5 bg-blue-500 hover:bg-blue-700 text-white font-bold px-5 py-1 rounded"
         >New Game</button
       >
     </div>
