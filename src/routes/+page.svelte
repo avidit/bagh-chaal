@@ -1,15 +1,15 @@
 <script>
   import { onMount } from 'svelte';
 
-  let menu = true;
+  let menu = false;
   let canvas;
   let ctx;
 
   export let canvasWidth = 500;
   export let canvasHeight = 500;
 
-  let charWidth = 50;
-  let charHeight = 50;
+  let pieceWidth = 50;
+  let pieceHeight = 50;
 
   let board = {
     a: {
@@ -76,7 +76,7 @@
 
   let m = { x: 0, y: 0 };
 
-  let selectedChar, selectedPos;
+  let selectedPiece, selectedPos, winner;
   let playAs = 'goat';
 
   onMount(() => {
@@ -93,12 +93,12 @@
     ctx.stroke();
   };
 
-  const drawCharacter = (position) => {
+  const drawPiece = (position) => {
     let [x, y] = board[position].coord;
     let image = new Image();
-    image.src = `${board[position].char}.png`;
+    image.src = `${board[position].piece}.png`;
     image.onload = () =>
-      ctx.drawImage(image, x - charWidth / 2, y - charHeight / 2, charWidth, charHeight);
+      ctx.drawImage(image, x - pieceWidth / 2, y - pieceHeight / 2, pieceWidth, pieceHeight);
   };
 
   const drawBoard = () => {
@@ -118,11 +118,11 @@
   };
 
   const updateBoard = () => {
-    for (const [k, v] of Object.entries(board)) {
-      if (v.char) {
-        drawCharacter(k);
+    Object.entries(board).forEach(([k, v]) => {
+      if (v.piece) {
+        drawPiece(k);
       }
-    }
+    });
   };
 
   const select = (position) => {
@@ -132,65 +132,61 @@
     Object.assign(ctx, options);
     let [x, y] = board[position].coord;
     ctx.beginPath();
-    ctx.rect(x - charWidth / 2, y - charHeight / 2, charWidth, charHeight);
+    ctx.rect(x - pieceWidth / 2, y - pieceHeight / 2, pieceWidth, pieceHeight);
     ctx.stroke();
     updateBoard();
   };
 
-  const isEmpty = (position) => !board[position].char;
+  const isEmpty = (position) => !board[position].piece;
   const canMove = (from, to) => isEmpty(to) && board[from].paths.includes(to);
   const canJump = (from, to) => isEmpty(to) && Object.keys(board[from].jumps).includes(to);
 
-  const move = (character, from, to) => {
+  const move = (piece, from, to) => {
     clearBoard();
     drawBoard();
-    board[from].char = '';
-    board[to].char = character;
+    board[from].piece = '';
+    board[to].piece = piece;
     updateBoard();
   };
 
   const jump = (from, to) => {
     clearBoard();
     drawBoard();
-    board[from].char = '';
-    board[to].char = 'tiger';
-    board[board[from].jumps[to]].char = '';
+    board[from].piece = '';
+    board[to].piece = 'tiger';
+    board[board[from].jumps[to]].piece = '';
     updateBoard();
   };
 
   const newGame = () => {
+    toggleMenu();
     clearBoard();
     drawBoard();
-    board.a.char = 'tiger';
-    board.b.char = '';
-    board.c.char = '';
-    board.d.char = '';
-    board.e.char = '';
-    board.f.char = '';
-    board.g.char = '';
-    board.h.char = 'goat';
-    board.i.char = 'goat';
-    board.j.char = 'goat';
+    board.a.piece = 'tiger';
+    board.b.piece = '';
+    board.c.piece = '';
+    board.d.piece = '';
+    board.e.piece = '';
+    board.f.piece = '';
+    board.g.piece = '';
+    board.h.piece = 'goat';
+    board.i.piece = 'goat';
+    board.j.piece = 'goat';
     updateBoard();
-    selectedChar = '';
+    selectedPiece = '';
     selectedPos = '';
   };
 
   const isPosition = (x, y) =>
-    m.x > x - charWidth / 2 &&
-    m.x < x + charWidth / 2 &&
-    m.y > y - charHeight / 2 &&
-    m.y < y + charHeight / 2;
+    m.x > x - pieceWidth / 2 &&
+    m.x < x + pieceWidth / 2 &&
+    m.y > y - pieceHeight / 2 &&
+    m.y < y + pieceHeight / 2;
 
-  const getPosition = () => {
-    for (const [k, v] of Object.entries(board)) {
-      let [x, y] = v.coord;
-      if (isPosition(x, y)) {
-        return k;
-      }
-    }
-  };
-
+  const getPosition = () =>
+    Object.keys(
+      Object.fromEntries(Object.entries(board).filter(([k, v]) => isPosition(...v.coord)))
+    )[0];
   const handleClick = (event) => {
     let rect = canvas.getBoundingClientRect();
     m.x = Math.round(event.clientX - rect.left);
@@ -199,17 +195,17 @@
     let position = getPosition();
     if (!position) {
       return;
-    } else if (board[position].char) {
+    } else if (board[position].piece && board[position].piece === playAs) {
       select(position);
-      selectedChar = board[position].char;
+      selectedPiece = board[position].piece;
       selectedPos = position;
-    } else if (selectedChar && canMove(selectedPos, position)) {
-      move(selectedChar, selectedPos, position);
-      selectedChar = '';
+    } else if (selectedPiece && canMove(selectedPos, position)) {
+      move(selectedPiece, selectedPos, position);
+      selectedPiece = '';
       selectedPos = '';
-    } else if (selectedChar === 'tiger' && canJump(selectedPos, position)) {
+    } else if (selectedPiece === 'tiger' && canJump(selectedPos, position)) {
       jump(selectedPos, position);
-      selectedChar = '';
+      selectedPiece = '';
       selectedPos = '';
     } else {
     }
@@ -219,8 +215,13 @@
 {#if menu}
   <div id="menu" class="w-full h-full bg-gray-800 bg-opacity-70 top-0 fixed">
     <div class="flex justify-center items-center h-screen">
-      <div class="flex flex-col items-center border bg-gray-800 text-white px-10 py-10 rounded-lg">
-        <p class="text-lg font-bold">Play as:</p>
+      <div
+        class="flex flex-col items-center border bg-slate-800 text-white font-bold px-10 py-10 rounded-lg"
+      >
+        {#if winner}
+          <p class="text-3xl py-5">{winner} won !</p>
+        {/if}
+        <p class="text-lg">Play as:</p>
         <div class="form-check">
           <input
             class="form-check-input appearance-none rounded-full h-4 w-4 border bg-white checked:bg-blue-600 transition duration-200 cursor-pointer"
@@ -244,9 +245,7 @@
           <label class="form-check-label inline-block text-white" for="playAsGoat">Goat</label>
         </div>
 
-        <button
-          on:click={toggleMenu}
-          class="m-5 bg-blue-500 hover:bg-blue-700 text-white font-bold px-5 py-1 rounded"
+        <button on:click={newGame} class="m-5 bg-blue-500 hover:bg-blue-700 px-5 py-1 rounded"
           >Start</button
         >
       </div>
@@ -255,26 +254,24 @@
 {/if}
 
 <div class="flex justify-center py-10">
-  <div class="box-border border-slate-800 border-8 rounded-md">
-    <div class="bg-slate-600 text-center text-gray-800 pt-5 pb-0">
-      <p class="text-4xl font-bold font-sans">Baghchal</p>
-      <p class="text-xl font-bold font-sans">A Tiger's move</p>
+  <div class="box-border border-slate-800 border-8 bg-slate-500 rounded-md font-bold font-sans">
+    <div class="text-center text-gray-800 py-5">
+      <p class="text-4xl">Baghchal</p>
+      <p class="text-xl">A Tiger's move</p>
     </div>
 
-    <div class="bg-slate-500">
-      <canvas
-        on:mousedown={handleClick}
-        width={canvasWidth}
-        height={canvasHeight}
-        bind:this={canvas}
-      />
-    </div>
+    <canvas
+      on:mousedown={handleClick}
+      class="bg-slate-600"
+      width={canvasWidth}
+      height={canvasHeight}
+      bind:this={canvas}
+    />
 
-    <div class="flex flex-row justify-center items-center bg-slate-600 ">
+    <div class="flex justify-center">
       <button
         on:click={toggleMenu}
-        class="m-5 bg-blue-500 hover:bg-blue-700 text-white font-bold px-5 py-1 rounded"
-        >New Game</button
+        class="m-5 bg-blue-500 hover:bg-blue-700 text-white px-5 py-1 rounded">New Game</button
       >
     </div>
   </div>
