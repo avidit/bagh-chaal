@@ -1,12 +1,13 @@
 <script>
   import { onMount } from 'svelte';
 
+  let m = { x: 0, y: 0 };
   let menu = false;
   let canvas;
   let ctx;
 
-  export let canvasWidth = 500;
-  export let canvasHeight = 500;
+  let canvasWidth = 500;
+  let canvasHeight = 500;
 
   let pieceWidth = 50;
   let pieceHeight = 50;
@@ -74,10 +75,9 @@
     }
   };
 
-  let m = { x: 0, y: 0 };
-
-  let selectedPiece, selectedPos, winner;
   let playAs = 'goat';
+  let goatCount = 3;
+  let selectedPiece, selectedPos, winner;
 
   onMount(() => {
     ctx = canvas.getContext('2d');
@@ -119,9 +119,7 @@
 
   const updateBoard = () => {
     Object.entries(board).forEach(([k, v]) => {
-      if (v.piece) {
-        drawPiece(k);
-      }
+      if (v.piece) drawPiece(k);
     });
   };
 
@@ -140,13 +138,65 @@
   const isEmpty = (position) => !board[position].piece;
   const canMove = (from, to) => isEmpty(to) && board[from].paths.includes(to);
   const canJump = (from, to) => isEmpty(to) && Object.keys(board[from].jumps).includes(to);
+  const isPosition = (x, y) =>
+    m.x > x - pieceWidth / 2 &&
+    m.x < x + pieceWidth / 2 &&
+    m.y > y - pieceHeight / 2 &&
+    m.y < y + pieceHeight / 2;
+
+  const getPosition = () =>
+    Object.keys(
+      Object.fromEntries(Object.entries(board).filter(([_, v]) => isPosition(...v.coord)))
+    )[0];
+
+  const getTigerPosition = () =>
+    Object.keys(
+      Object.fromEntries(Object.entries(board).filter(([_, v]) => v.piece === 'tiger'))
+    )[0];
+
+  const getGoatPositions = () =>
+    Object.keys(Object.fromEntries(Object.entries(board).filter(([_, v]) => v.piece === 'goat')));
+
+  const goatsMovesLeft = () => {
+    let goatPositions = getGoatPositions();
+    let goatPositionsWithMove = goatPositions.filter((from) =>
+      board[from].paths.some((to) => canMove(from, to))
+    );
+    if (goatPositionsWithMove.length) return true;
+  };
+
+  const tigerMovesLeft = () => {
+    let position = getTigerPosition();
+    let jumpPositions = Object.keys(board[position].jumps).filter((to) => canJump(position, to));
+    let movePositions = board[position].paths.filter((to) => canMove(position, to));
+    if (jumpPositions.length || movePositions.length) return true;
+  };
+
+  const checkStatus = () => {
+    if (goatCount < 2) {
+      winner = 'tiger';
+      menu = true;
+      return;
+    }
+
+    if (!goatsMovesLeft()) {
+      winner = 'tiger';
+      menu = true;
+      return;
+    }
+
+    if (!tigerMovesLeft()) {
+      winner = 'goat';
+      menu = true;
+      return;
+    }
+  };
 
   const move = (piece, from, to) => {
     clearBoard();
     drawBoard();
     board[from].piece = '';
     board[to].piece = piece;
-    updateBoard();
   };
 
   const jump = (from, to) => {
@@ -155,7 +205,45 @@
     board[from].piece = '';
     board[to].piece = 'tiger';
     board[board[from].jumps[to]].piece = '';
-    updateBoard();
+    goatCount -= 1;
+  };
+
+  const counterMove = () => {
+    if (playAs === 'goat') {
+      let tigerPos = getTigerPosition();
+      let jumpPositions = Object.keys(board[tigerPos].jumps).filter(
+        (position) =>
+          canJump(tigerPos, position) && board[board[tigerPos].jumps[position]].piece === 'goat'
+      );
+      let jumpPosition = jumpPositions[Math.floor(Math.random() * jumpPositions.length)];
+      if (jumpPosition) {
+        jump(tigerPos, jumpPosition);
+        checkStatus();
+        return;
+      }
+
+      let movePositions = board[tigerPos].paths.filter((position) => canMove(tigerPos, position));
+      let movePosition = movePositions[Math.floor(Math.random() * movePositions.length)];
+      if (movePosition) {
+        move('tiger', tigerPos, movePosition);
+      }
+      checkStatus();
+    } else {
+      let goatPositions = getGoatPositions();
+      let goatPositionsWithMove = goatPositions.filter((from) =>
+        board[from].paths.some((to) => canMove(from, to))
+      );
+      if (!goatPositionsWithMove.length) {
+        winner = 'tiger';
+        menu = true;
+        return;
+      }
+      let goatPos = goatPositionsWithMove[Math.floor(Math.random() * goatPositionsWithMove.length)];
+      let movePositions = board[goatPos].paths.filter((position) => canMove(goatPos, position));
+      let movePosition = movePositions[Math.floor(Math.random() * movePositions.length)];
+      move('goat', goatPos, movePosition);
+      checkStatus();
+    }
   };
 
   const newGame = () => {
@@ -173,20 +261,10 @@
     board.i.piece = 'goat';
     board.j.piece = 'goat';
     updateBoard();
-    selectedPiece = '';
-    selectedPos = '';
+    goatCount = 3;
+    winner = '';
   };
 
-  const isPosition = (x, y) =>
-    m.x > x - pieceWidth / 2 &&
-    m.x < x + pieceWidth / 2 &&
-    m.y > y - pieceHeight / 2 &&
-    m.y < y + pieceHeight / 2;
-
-  const getPosition = () =>
-    Object.keys(
-      Object.fromEntries(Object.entries(board).filter(([k, v]) => isPosition(...v.coord)))
-    )[0];
   const handleClick = (event) => {
     let rect = canvas.getBoundingClientRect();
     m.x = Math.round(event.clientX - rect.left);
@@ -203,10 +281,14 @@
       move(selectedPiece, selectedPos, position);
       selectedPiece = '';
       selectedPos = '';
+      counterMove();
+      updateBoard();
     } else if (selectedPiece === 'tiger' && canJump(selectedPos, position)) {
       jump(selectedPos, position);
       selectedPiece = '';
       selectedPos = '';
+      counterMove();
+      updateBoard();
     } else {
     }
   };
