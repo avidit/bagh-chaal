@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .ascii-diagram {
+    @apply mx-auto block w-fit max-w-full overflow-x-auto rounded bg-slate-800 p-4 font-mono text-sm leading-none text-slate-100;
+    font-variant-ligatures: none;
+    tab-size: 4;
+    white-space: pre;
+  }
+
+  .ascii-diagram-sm {
+    @apply p-2 text-[10px] leading-none;
+  }
+}
