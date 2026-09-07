@@ -8,7 +8,7 @@ const config = {
       fallback: 'index.html'
     }),
     paths: {
-      base: process.env.NODE_ENV === 'production' ? '/bagh-chal' : ''
+      base: process.env.NODE_ENV === 'production' ? '/bagh-chaal' : ''
     }
   },
   preprocess: vitePreprocess()
