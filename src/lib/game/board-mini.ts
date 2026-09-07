@@ -18,7 +18,7 @@ const jumps: Record<MiniNodeId, Partial<Record<MiniNodeId, MiniNodeId>>> = {
   a: { e: 'b', g: 'd' },
   b: { d: 'c' },
   c: {},
-  d: {},
+  d: { b: 'c' },
   e: { a: 'b', g: 'f' },
   f: {},
   g: { a: 'd', e: 'f' },
