@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { standardBoard } from './board-standard';
-import { getBlockedCaptures, getLegalMoves } from './engine';
-import { createGame } from './engine';
+import { createGame, getBlockedCaptures, getLegalMoves } from './engine';
 import type { GameState } from './types';
 
 function tigerGame(pieces: GameState['pieces']): GameState {
