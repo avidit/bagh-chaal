@@ -1,5 +1,7 @@
 # Bagh-chaal
 
+[![CI and Deploy](https://github.com/avidit/bagh-chaal/actions/workflows/ci.yml/badge.svg)](https://github.com/avidit/bagh-chaal/actions/workflows/ci.yml)
+
 Bagh-chaal, a tiger's move is a strategic, two-player board game that originated in Nepal.
 
 Play the mini game (1 tiger, 3 goats) or the standard 5×5 board against the computer.
@@ -39,4 +41,4 @@ The mini board is defined in [`src/lib/game/board-mini.ts`](src/lib/game/board-m
 
 ## Deploy
 
-Pushes run [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml), which builds with `adapter-static` and publishes to GitHub Pages.
+Pushes to any branch run [`.github/workflows/ci.yml`](.github/workflows/ci.yml) to build and test. Pushes to `main` also publish to GitHub Pages via `adapter-static`.

@@ -1,4 +1,5 @@
-name: Deploy to GitHub Pages
+# Build and test on every push; deploy to GitHub Pages only from main.
+name: CI and Deploy
 
 on:
   push:
