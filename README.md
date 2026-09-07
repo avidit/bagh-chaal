@@ -1,6 +1,6 @@
 # Bagh-chaal
 
-A tiger's move — a Bagh-chaal board game built with SvelteKit.
+Bagh-chaal, a tiger's move is a strategic, two-player board game that originated in Nepal.
 
 Play the mini game (1 tiger, 3 goats) or the standard 5×5 board against the computer.
 
@@ -8,7 +8,7 @@ Play the mini game (1 tiger, 3 goats) or the standard 5×5 board against the com
 
 After GitHub Pages is enabled for this repo, the site is published at:
 
-https://avidit.github.io/bagh-chal/
+https://avidit.github.io/bagh-chaal/
 
 ## Attribution
 
