@@ -73,6 +73,26 @@ describe('mini board engine', () => {
     expect(game.captures).toBe(1);
   });
 
+  it('captures on the B–C–D line when tiger jumps from D over C to B', () => {
+    let game = createGame({ variant: 'mini', humanSide: 'tiger' });
+    game = {
+      ...game,
+      pieces: { d: 'tiger', c: 'goat' },
+      turn: 'tiger'
+    };
+
+    const jump = getLegalMoves(game).find(
+      (move) => move.kind === 'jump' && move.from === 'd' && move.to === 'b' && move.over === 'c'
+    );
+    expect(jump).toBeDefined();
+
+    game = applyMove(game, jump!);
+    expect(game.pieces.d).toBeUndefined();
+    expect(game.pieces.c).toBeUndefined();
+    expect(game.pieces.b).toBe('tiger');
+    expect(game.captures).toBe(1);
+  });
+
   it('tiger wins after two captures', () => {
     const game = createGame({ variant: 'mini', humanSide: 'tiger' });
     expect(checkWinner({ ...game, captures: 2, turn: 'goat' })).toBe('tiger');

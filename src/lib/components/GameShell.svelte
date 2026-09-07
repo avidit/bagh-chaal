@@ -68,6 +68,10 @@
       : []
   );
 
+  const boardLegalMoves = $derived(
+    humanSide === 'goat' && game.phase === 'movement' ? selectedGoatMoves : legalMoves
+  );
+
   const selectedTigerMoves = $derived(
     selected && humanSide === 'tiger' && game.variant === 'standard'
       ? getSelectedTigerMoves(game, selected, lastTigerNode)
@@ -399,7 +403,7 @@
         <Board
           bind:selected
           {game}
-          {legalMoves}
+          legalMoves={boardLegalMoves}
           movableGoatNodes={humanSide === 'goat' && game.phase === 'movement'
             ? new Set(
                 legalMoves
