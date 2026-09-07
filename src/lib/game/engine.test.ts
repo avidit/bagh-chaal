@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { miniBoard } from './board-mini';
-import { applyMove, checkWinner, createGame, getLegalMoves, getWinSummary } from './engine';
+import {
+  applyMove,
+  checkWinner,
+  createGame,
+  getLegalMoves,
+  getWinSummary,
+  positionKey
+} from './engine';
 import type { GameState } from './types';
 
 describe('mini board engine', () => {
@@ -119,5 +126,47 @@ describe('standard board engine', () => {
     const placements = getLegalMoves(game);
     expect(placements.every((move) => move.kind === 'place')).toBe(true);
     expect(placements.some((move) => move.kind === 'place' && move.to === 'n12')).toBe(true);
+  });
+
+  it('does not allow goat movement during placement', () => {
+    const game = createGame({ variant: 'standard', humanSide: 'goat' });
+    expect(getLegalMoves(game).some((move) => move.kind === 'move')).toBe(false);
+  });
+
+  it('allows tigers to move during placement', () => {
+    let game = createGame({ variant: 'standard', humanSide: 'tiger' });
+    game = applyMove(game, getLegalMoves(game)[0]);
+    expect(game.phase).toBe('placement');
+    expect(game.turn).toBe('tiger');
+    expect(getLegalMoves(game).some((move) => move.kind === 'move' || move.kind === 'jump')).toBe(
+      true
+    );
+  });
+
+  it('enters movement phase after the last goat is placed', () => {
+    let game = createGame({ variant: 'standard', humanSide: 'goat' });
+    while (game.goatsToPlace > 0) {
+      game = applyMove(game, getLegalMoves(game)[0]);
+    }
+    expect(game.phase).toBe('movement');
+    expect(game.goatsToPlace).toBe(0);
+    expect(getLegalMoves(game).some((move) => move.kind === 'move')).toBe(true);
+  });
+
+  it('tiger wins after five captures on the standard board', () => {
+    const game = createGame({ variant: 'standard', humanSide: 'tiger' });
+    expect(checkWinner({ ...game, captures: 5, turn: 'goat' })).toBe('tiger');
+  });
+
+  it('rejects illegal moves without changing state', () => {
+    const game = createGame({ variant: 'mini', humanSide: 'goat' });
+    const illegal = { kind: 'move' as const, from: 'h', to: 'a' };
+    const next = applyMove(game, illegal);
+    expect(next).toEqual(game);
+  });
+
+  it('records the starting position once in position counts', () => {
+    const game = createGame({ variant: 'standard', humanSide: 'goat' });
+    expect(game.positionCounts[positionKey(game)]).toBe(1);
   });
 });

@@ -7,15 +7,28 @@
   export let onPlayAgain: () => void = () => {};
 
   $: summary = getWinSummary(game);
-  $: winnerImage = summary?.winner === 'tiger' ? pieceImages.tiger : pieceImages.goat;
-  $: winnerLabel = summary?.winner === 'tiger' ? 'Tiger' : 'Goats';
-  $: panelClass = summary?.humanWon
-    ? 'border-emerald-500/40 bg-emerald-950/90'
-    : 'border-orange-500/40 bg-slate-900/95';
-  $: titleClass = summary?.humanWon ? 'text-emerald-300' : 'text-orange-300';
-  $: buttonClass = summary?.humanWon
-    ? 'bg-emerald-600 hover:bg-emerald-500'
-    : 'bg-orange-600 hover:bg-orange-500';
+  $: isDraw = summary?.winner === 'draw';
+  $: winnerImage = isDraw
+    ? null
+    : summary?.winner === 'tiger'
+      ? pieceImages.tiger
+      : pieceImages.goat;
+  $: winnerLabel = isDraw ? 'Draw' : summary?.winner === 'tiger' ? 'Tiger' : 'Goats';
+  $: panelClass = isDraw
+    ? 'border-slate-500/40 bg-slate-900/95'
+    : summary?.humanWon
+      ? 'border-emerald-500/40 bg-emerald-950/90'
+      : 'border-orange-500/40 bg-slate-900/95';
+  $: titleClass = isDraw
+    ? 'text-slate-200'
+    : summary?.humanWon
+      ? 'text-emerald-300'
+      : 'text-orange-300';
+  $: buttonClass = isDraw
+    ? 'bg-slate-600 hover:bg-slate-500'
+    : summary?.humanWon
+      ? 'bg-emerald-600 hover:bg-emerald-500'
+      : 'bg-orange-600 hover:bg-orange-500';
 </script>
 
 {#if summary}
@@ -25,7 +38,16 @@
     aria-live="assertive"
   >
     <div class="w-full max-w-xs rounded-2xl border px-6 py-6 text-center shadow-2xl {panelClass}">
-      <img src={winnerImage} alt="" class="mx-auto h-16 w-16 drop-shadow-lg" aria-hidden="true" />
+      {#if winnerImage}
+        <img src={winnerImage} alt="" class="mx-auto h-16 w-16 drop-shadow-lg" aria-hidden="true" />
+      {:else}
+        <div
+          class="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-slate-600 bg-slate-800 text-2xl"
+          aria-hidden="true"
+        >
+          =
+        </div>
+      {/if}
 
       <p class="mt-4 text-2xl font-bold tracking-tight {titleClass}">
         {summary.title}
@@ -34,7 +56,7 @@
       <p class="mt-1 text-sm text-slate-300">{summary.subtitle}</p>
 
       <p class="mt-3 text-xs font-medium uppercase tracking-wide text-slate-500">
-        {winnerLabel} win
+        {isDraw ? 'Game drawn' : `${winnerLabel} win`}
       </p>
 
       <div class="mt-4 flex justify-center gap-4 text-sm text-slate-400">

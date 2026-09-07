@@ -5,6 +5,10 @@ function nodeId(index: number): StandardNodeId {
   return `n${index}` as StandardNodeId;
 }
 
+function coord(index: number): [number, number] {
+  return [(index % 5) * 100 + 50, Math.floor(index / 5) * 100 + 50];
+}
+
 function isOnBoard(index: number): boolean {
   return index >= 0 && index <= 24;
 }
@@ -40,13 +44,21 @@ function getNeighbors(index: number): StandardNodeId[] {
   return result;
 }
 
-function getJumpOver(from: number, to: number): number | null {
-  const diff = to - from;
-  if (Math.abs(diff) === 2) return from + diff / 2;
-  if (Math.abs(diff) === 10) return from + diff / 2;
-  if (Math.abs(diff) === 11) return from + (diff > 0 ? 6 : -6);
-  if (Math.abs(diff) === 9) return from + (diff > 0 ? 4 : -4);
-  return null;
+/** Tiger must jump in a straight line with the goat exactly halfway between. */
+function isJumpLine(from: [number, number], over: [number, number], to: [number, number]): boolean {
+  const v1x = over[0] - from[0];
+  const v1y = over[1] - from[1];
+  const v2x = to[0] - over[0];
+  const v2y = to[1] - over[1];
+
+  if (v1x === 0 && v1y === 0) return false;
+  if (v2x === 0 && v2y === 0) return false;
+  if (v1x * v2y !== v1y * v2x) return false;
+  if (Math.sign(v1x) !== Math.sign(v2x) || Math.sign(v1y) !== Math.sign(v2y)) return false;
+
+  const d1 = v1x * v1x + v1y * v1y;
+  const d2 = v2x * v2x + v2y * v2y;
+  return d1 === d2;
 }
 
 const nodes = {} as BoardDefinition['nodes'];
@@ -55,15 +67,19 @@ const seenEdges = new Set<string>();
 
 for (let i = 0; i < 25; i += 1) {
   const id = nodeId(i);
+  const fromCoord = coord(i);
   const neighborIds = getNeighbors(i);
   const jumpMap: Partial<Record<StandardNodeId, StandardNodeId>> = {};
 
   for (const neighbor of neighborIds) {
     const neighborIndex = Number(neighbor.slice(1));
+    const overCoord = coord(neighborIndex);
+
     for (const landing of getNeighbors(neighborIndex)) {
       const landingIndex = Number(landing.slice(1));
-      const over = getJumpOver(i, landingIndex);
-      if (over === neighborIndex) {
+      if (landingIndex === i) continue;
+
+      if (isJumpLine(fromCoord, overCoord, coord(landingIndex))) {
         jumpMap[landing] = neighbor;
       }
     }
@@ -78,7 +94,7 @@ for (let i = 0; i < 25; i += 1) {
   nodes[id] = {
     id,
     label: String(i),
-    coord: [(i % 5) * 100 + 50, Math.floor(i / 5) * 100 + 50],
+    coord: fromCoord,
     neighbors: neighborIds,
     jumps: jumpMap
   };

@@ -37,12 +37,12 @@ export type PlayerSide = 'tiger' | 'goat';
 
 export type GamePhase = 'playing' | 'placement' | 'movement';
 
-export type Winner = PlayerSide | null;
+export type Winner = PlayerSide | 'draw' | null;
 
-export type WinReason = 'captures' | 'tiger-trapped' | 'goats-stalled';
+export type WinReason = 'captures' | 'tiger-trapped' | 'goats-stalled' | 'repetition';
 
 export interface WinSummary {
-  winner: PlayerSide;
+  winner: PlayerSide | 'draw';
   reason: WinReason;
   humanWon: boolean;
   title: string;
@@ -90,6 +90,7 @@ export interface GameState {
   captures: number;
   winner: Winner;
   humanSide: PlayerSide;
+  positionCounts: Record<string, number>;
 }
 
 export interface GameConfig {
