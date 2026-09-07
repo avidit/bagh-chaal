@@ -184,7 +184,7 @@
             class:bg-slate-800={selectedVariant !== 'mini'}
             class:text-slate-200={selectedVariant !== 'mini'}
             class:ring-slate-600={selectedVariant !== 'mini'}
-            on:click={() => {
+            onclick={() => {
               selectedVariant = 'mini';
               persistSetup();
             }}
@@ -200,7 +200,7 @@
             class:bg-slate-800={selectedVariant !== 'standard'}
             class:text-slate-200={selectedVariant !== 'standard'}
             class:ring-slate-600={selectedVariant !== 'standard'}
-            on:click={() => {
+            onclick={() => {
               selectedVariant = 'standard';
               persistSetup();
             }}
@@ -222,7 +222,7 @@
             class:bg-slate-800={selectedSide !== 'tiger'}
             class:text-slate-200={selectedSide !== 'tiger'}
             class:ring-slate-600={selectedSide !== 'tiger'}
-            on:click={() => {
+            onclick={() => {
               selectedSide = 'tiger';
               persistSetup();
             }}
@@ -238,7 +238,7 @@
             class:bg-slate-800={selectedSide !== 'goat'}
             class:text-slate-200={selectedSide !== 'goat'}
             class:ring-slate-600={selectedSide !== 'goat'}
-            on:click={() => {
+            onclick={() => {
               selectedSide = 'goat';
               persistSetup();
             }}
@@ -251,7 +251,7 @@
       <button
         type="button"
         class="mt-6 w-full max-w-xs rounded-lg bg-orange-600 px-6 py-3 font-semibold text-white transition hover:bg-orange-500"
-        on:click={startGame}
+        onclick={startGame}
       >
         Start game
       </button>
@@ -260,7 +260,7 @@
         <button
           type="button"
           class="text-slate-300 underline-offset-2 hover:text-white hover:underline"
-          on:click={() => (showHowToPlay = true)}
+          onclick={() => (showHowToPlay = true)}
         >
           How to play
         </button>
@@ -290,7 +290,7 @@
           <button
             type="button"
             class="rounded-md border border-slate-600 px-4 py-2 text-sm font-medium text-slate-300 hover:border-slate-500 hover:text-white"
-            on:click={playAgain}
+            onclick={playAgain}
           >
             End game
           </button>
@@ -298,7 +298,7 @@
         <button
           type="button"
           class="text-sm text-slate-500 underline-offset-2 hover:text-slate-300 hover:underline"
-          on:click={() => (showHowToPlay = true)}
+          onclick={() => (showHowToPlay = true)}
         >
           How to play
         </button>

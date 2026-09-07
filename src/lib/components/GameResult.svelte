@@ -45,7 +45,7 @@
       <button
         type="button"
         class="mt-6 w-full rounded-lg px-4 py-3 text-sm font-semibold text-white transition {buttonClass}"
-        on:click={onPlayAgain}
+        onclick={onPlayAgain}
       >
         Play again
       </button>

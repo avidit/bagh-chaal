@@ -149,8 +149,8 @@
         role="button"
         tabindex="0"
         aria-label="{node.label}{piece ? ` ${piece}` : ''}"
-        on:click={() => handleNodeClick(node.id)}
-        on:keydown={(event) => {
+        onclick={() => handleNodeClick(node.id)}
+        onkeydown={(event) => {
           if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault();
             handleNodeClick(node.id);

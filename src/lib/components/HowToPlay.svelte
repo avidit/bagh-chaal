@@ -56,7 +56,7 @@ T---o---o---o---T`;
       type="button"
       class="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-md text-xl leading-none text-slate-400 transition hover:bg-slate-700 hover:text-white"
       aria-label="Close"
-      on:click={onDismiss}
+      onclick={onDismiss}
     >
       ×
     </button>
