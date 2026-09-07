@@ -49,14 +49,14 @@ T---o---o---o---T`;
   <div
     class="{panelClass} relative max-w-4xl rounded-2xl border border-slate-700 bg-slate-800 p-5 text-slate-100 shadow-2xl sm:p-6"
     role="dialog"
-    aria-modal="true"
+    aria-modal={overlay ? 'true' : undefined}
     aria-labelledby="how-to-play-title"
   >
     <button
       type="button"
       class="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-md text-xl leading-none text-slate-400 transition hover:bg-slate-700 hover:text-white"
       aria-label="Close"
-      onclick={onDismiss}
+      on:click={onDismiss}
     >
       ×
     </button>

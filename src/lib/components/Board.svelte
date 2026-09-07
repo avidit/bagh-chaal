@@ -150,7 +150,12 @@
         tabindex="0"
         aria-label="{node.label}{piece ? ` ${piece}` : ''}"
         on:click={() => handleNodeClick(node.id)}
-        on:keydown={(event) => event.key === 'Enter' && handleNodeClick(node.id)}
+        on:keydown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            handleNodeClick(node.id);
+          }
+        }}
       >
         {#if piece}
           <rect
