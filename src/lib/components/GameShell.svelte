@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import Board from '$lib/components/Board.svelte';
+  import CaptureToast from '$lib/components/CaptureToast.svelte';
   import GameResult from '$lib/components/GameResult.svelte';
   import GameStatus from '$lib/components/GameStatus.svelte';
   import HowToPlay from '$lib/components/HowToPlay.svelte';
@@ -15,52 +16,134 @@
     resolveActiveTiger
   } from '$lib/game/engine';
   import { loadSetupPreferences, saveSetupPreferences } from '$lib/game/preferences';
+  import {
+    getSelectedTigerMoves,
+    getStandardTigerLegalMoves,
+    resolveStandardTiger
+  } from '$lib/game/tiger-ui';
   import type { GameState, Move, NodeId, PlayerSide } from '$lib/game/types';
   import { pieceImages } from '$lib/pieces';
 
-  let selectedVariant: GameState['variant'] = 'mini';
-  let activeVariant: GameState['variant'] = 'mini';
-  let started = false;
-  let cpuThinking = false;
+  let selectedVariant = $state<GameState['variant']>('mini');
+  let activeVariant = $state<GameState['variant']>('mini');
+  let started = $state(false);
+  let cpuThinking = $state(false);
 
-  $: displayVariant = started ? activeVariant : selectedVariant;
-  $: variantLabel =
-    displayVariant === 'mini' ? 'Mini board · 1 tiger, 3 goats' : 'Standard board · 5×5';
+  let game = $state(createGame({ variant: 'mini', humanSide: 'goat' }));
+  let selected = $state<NodeId | null>(null);
+  let lastGoatNode = $state<NodeId | null>(null);
+  let lastTigerNode = $state<NodeId | null>(null);
+  let humanSide = $state<PlayerSide>('goat');
+  let showHowToPlay = $state(false);
+  let selectedSide = $state<PlayerSide>('goat');
+  let captureNotice = $state<string | null>(null);
 
-  let game = createGame({ variant: 'mini', humanSide: 'goat' });
-  let selectedSide: PlayerSide = 'goat';
-  let selected: NodeId | null = null;
-  let lastGoatNode: NodeId | null = null;
-  let humanSide: PlayerSide = 'goat';
-  let showHowToPlay = false;
+  let captureNoticeTimer: ReturnType<typeof window.setTimeout> | undefined;
 
-  $: activeTiger =
-    game.turn === humanSide && humanSide === 'tiger' ? resolveActiveTiger(game, selected) : null;
+  const displayVariant = $derived(started ? activeVariant : selectedVariant);
+  const variantLabel = $derived(
+    displayVariant === 'mini' ? 'Mini board · 1 tiger, 3 goats' : 'Standard board · 5×5'
+  );
 
-  $: legalMoves =
+  const legalMoves = $derived(
     game.turn === humanSide && game.winner === null
-      ? humanSide === 'tiger' && activeTiger
-        ? getLegalMoves(game).filter((move) => moveSource(move) === activeTiger)
-        : selected && humanSide === 'goat'
-          ? getLegalMoves(game).filter((move) => moveSource(move) === selected)
-          : game.phase === 'placement' && humanSide === 'goat'
+      ? humanSide === 'tiger' && game.variant === 'standard'
+        ? getStandardTigerLegalMoves(game, selected, lastTigerNode)
+        : humanSide === 'tiger'
+          ? (() => {
+              const tiger = resolveActiveTiger(game, selected);
+              return tiger ? getLegalMoves(game).filter((move) => moveSource(move) === tiger) : [];
+            })()
+          : humanSide === 'goat' && game.phase === 'placement'
             ? getLegalMoves(game)
-            : []
-      : [];
+            : humanSide === 'goat' && game.phase === 'movement'
+              ? getLegalMoves(game)
+              : []
+      : []
+  );
+
+  const selectedGoatMoves = $derived(
+    selected && humanSide === 'goat' && game.phase === 'movement'
+      ? legalMoves.filter((move) => moveSource(move) === selected)
+      : []
+  );
+
+  const selectedTigerMoves = $derived(
+    selected && humanSide === 'tiger' && game.variant === 'standard'
+      ? getSelectedTigerMoves(game, selected, lastTigerNode)
+      : []
+  );
+
+  const goatMoveHint = $derived(
+    humanSide === 'goat' &&
+      game.turn === humanSide &&
+      game.phase === 'movement' &&
+      game.winner === null &&
+      !cpuThinking
+      ? selected && selectedGoatMoves.length === 0
+        ? legalMoves.length > 0
+          ? 'This goat cannot move — tap a green dot or choose another goat'
+          : 'No goat can move'
+        : legalMoves.length > 0
+          ? 'Tap a green dot to move'
+          : null
+      : null
+  );
+
+  const tigerMoveHint = $derived(
+    humanSide === 'tiger' &&
+      game.turn === humanSide &&
+      game.variant === 'standard' &&
+      game.winner === null &&
+      !cpuThinking
+      ? selected && selectedTigerMoves.length === 0
+        ? legalMoves.length > 0
+          ? 'This tiger cannot move — tap a green dot or choose another tiger'
+          : 'No tiger can move'
+        : legalMoves.length > 0
+          ? selected && selectedTigerMoves.length > 0
+            ? 'Tap a green dot to move, or tap another tiger to switch'
+            : 'Tap a tiger with a dashed outline, then tap a green dot'
+          : null
+      : null
+  );
+
+  const moveHint = $derived(goatMoveHint ?? tigerMoveHint);
 
   function resolveSelection(state: GameState): NodeId | null {
     if (state.winner !== null || state.turn !== humanSide) return null;
 
     if (humanSide === 'tiger') {
+      if (state.variant === 'standard') {
+        return resolveStandardTiger(state, selected, lastTigerNode);
+      }
       return resolveActiveTiger(state, selected);
     }
 
     if (humanSide === 'goat' && state.phase === 'movement') {
-      if (lastGoatNode && state.pieces[lastGoatNode] === 'goat') return lastGoatNode;
-      if (activeVariant === 'mini' && state.pieces.i === 'goat') return 'i';
+      const moves = getLegalMoves(state).filter((move) => move.kind === 'move');
+      if (lastGoatNode && moves.some((move) => moveSource(move) === lastGoatNode)) {
+        return lastGoatNode;
+      }
+      const firstMovable = moves.map((move) => moveSource(move)).find((node) => node !== null);
+      if (firstMovable) return firstMovable;
     }
 
     return null;
+  }
+
+  function syncSelection(state: GameState) {
+    if (state.turn !== humanSide || state.winner !== null) {
+      selected = null;
+      return;
+    }
+
+    if (humanSide === 'tiger' && state.variant === 'standard') {
+      selected = resolveSelection(state);
+      return;
+    }
+
+    selected = applySelection(state);
   }
 
   function applySelection(state: GameState): NodeId | null {
@@ -75,6 +158,31 @@
     if (node && game.pieces[node] === 'goat') {
       lastGoatNode = node;
     }
+  }
+
+  function clearCaptureNotice() {
+    if (captureNoticeTimer) {
+      window.clearTimeout(captureNoticeTimer);
+      captureNoticeTimer = undefined;
+    }
+    captureNotice = null;
+  }
+
+  function notifyCapture(previous: GameState, next: GameState) {
+    if (next.captures <= previous.captures) return;
+
+    captureNotice =
+      humanSide === 'tiger'
+        ? `Goat captured! (${next.captures} total)`
+        : `Tiger captured a goat (${next.captures} total)`;
+
+    if (captureNoticeTimer) {
+      window.clearTimeout(captureNoticeTimer);
+    }
+    captureNoticeTimer = window.setTimeout(() => {
+      captureNotice = null;
+      captureNoticeTimer = undefined;
+    }, 2000);
   }
 
   function persistSetup() {
@@ -93,10 +201,12 @@
     activeVariant = selectedVariant;
     humanSide = selectedSide;
     lastGoatNode = null;
+    lastTigerNode = null;
     cpuThinking = false;
+    clearCaptureNotice();
     persistSetup();
     game = createGame({ variant: activeVariant, humanSide: selectedSide });
-    selected = applySelection(game);
+    syncSelection(game);
     started = true;
     maybeRunCpu();
   }
@@ -105,7 +215,9 @@
     started = false;
     selected = null;
     lastGoatNode = null;
+    lastTigerNode = null;
     cpuThinking = false;
+    clearCaptureNotice();
     selectedVariant = activeVariant;
     game = createGame({ variant: activeVariant, humanSide: selectedSide });
   }
@@ -114,8 +226,15 @@
     if (humanSide === 'goat' && move.kind === 'move') {
       lastGoatNode = moveTarget(move);
     }
+    if (humanSide === 'tiger' && (move.kind === 'move' || move.kind === 'jump')) {
+      lastTigerNode = moveTarget(move);
+    }
+    const previous = game;
     game = applyMove(game, move);
-    selected = applySelection(game);
+    notifyCapture(previous, game);
+    if (game.turn !== humanSide) {
+      selected = null;
+    }
     maybeRunCpu();
   }
 
@@ -123,12 +242,14 @@
     if (isCpuTurn(game)) {
       cpuThinking = true;
       window.setTimeout(() => {
+        const previous = game;
         const cpuMove = getCpuMove(game);
         if (cpuMove) {
           game = applyMove(game, cpuMove);
+          notifyCapture(previous, game);
         }
         cpuThinking = false;
-        selected = applySelection(game);
+        syncSelection(game);
       }, 400);
     }
   }
@@ -142,6 +263,7 @@
       }
       if (game.turn !== humanSide || game.pieces[node] !== 'tiger') return;
       selected = node;
+      lastTigerNode = node;
       return;
     }
 
@@ -268,15 +390,31 @@
     </section>
   {:else}
     <div class="p-4">
-      <GameStatus {game} {variantLabel} {cpuThinking} />
+      <GameStatus {game} {variantLabel} {cpuThinking} hint={moveHint} />
 
       <div
         class="relative mt-4 aspect-square w-full overflow-hidden rounded-lg border border-slate-700"
       >
+        <CaptureToast message={captureNotice} />
         <Board
+          bind:selected
           {game}
           {legalMoves}
-          selected={activeTiger ?? selected}
+          movableGoatNodes={humanSide === 'goat' && game.phase === 'movement'
+            ? new Set(
+                legalMoves
+                  .filter((move) => move.kind === 'move')
+                  .map((move) => moveSource(move))
+                  .filter((node): node is NodeId => node !== null)
+              )
+            : new Set()}
+          movableTigerNodes={humanSide === 'tiger' && game.variant === 'standard'
+            ? new Set(
+                getLegalMoves(game)
+                  .map((move) => moveSource(move))
+                  .filter((node): node is NodeId => node !== null)
+              )
+            : new Set()}
           onSelect={handleSelect}
           onMove={handleMove}
         />

@@ -31,12 +31,33 @@ function clonePieces(pieces: Partial<Record<NodeId, Piece>>): Partial<Record<Nod
   return { ...pieces };
 }
 
+const REPETITION_DRAW_THRESHOLD = 3;
+
+export function positionKey(state: GameState): string {
+  const pieces = Object.entries(state.pieces).sort(([a], [b]) => a.localeCompare(b));
+  return JSON.stringify({
+    variant: state.variant,
+    phase: state.phase,
+    turn: state.turn,
+    goatsToPlace: state.goatsToPlace,
+    captures: state.captures,
+    pieces
+  });
+}
+
+function recordPosition(state: GameState): GameState {
+  const positionCounts = { ...state.positionCounts };
+  const key = positionKey(state);
+  positionCounts[key] = (positionCounts[key] ?? 0) + 1;
+  return { ...state, positionCounts };
+}
+
 export function createGame(config: GameConfig): GameState {
   const board = getBoard(config.variant);
   const pieces = clonePieces(board.initialPieces);
   const goatsOnBoard = Object.values(pieces).filter((piece) => piece === 'goat').length;
 
-  return {
+  const game: GameState = {
     variant: config.variant,
     phase: config.variant === 'standard' ? 'placement' : 'movement',
     turn: config.variant === 'standard' ? 'goat' : 'tiger',
@@ -46,8 +67,11 @@ export function createGame(config: GameConfig): GameState {
     goatsToPlace: config.variant === 'standard' ? board.goatCount - goatsOnBoard : 0,
     captures: 0,
     winner: null,
-    humanSide: config.humanSide
+    humanSide: config.humanSide,
+    positionCounts: {}
   };
+
+  return recordPosition(game);
 }
 
 function pieceAt(state: GameState, node: NodeId): Piece | undefined {
@@ -192,6 +216,8 @@ function getWinReason(state: GameState, board: BoardDefinition): WinReason | nul
 }
 
 export function checkWinner(state: GameState): Winner {
+  if (state.winner === 'draw') return 'draw';
+
   const board = getBoard(state.variant);
   const reason = getWinReason(state, board);
   if (reason === 'captures' || reason === 'goats-stalled') return 'tiger';
@@ -201,6 +227,16 @@ export function checkWinner(state: GameState): Winner {
 
 export function getWinSummary(state: GameState): WinSummary | null {
   if (state.winner === null) return null;
+
+  if (state.winner === 'draw') {
+    return {
+      winner: 'draw',
+      reason: 'repetition',
+      humanWon: false,
+      title: 'Draw',
+      subtitle: 'The same position occurred three times'
+    };
+  }
 
   const board = getBoard(state.variant);
   const reason = getWinReason(state, board);
@@ -221,6 +257,9 @@ export function getWinSummary(state: GameState): WinSummary | null {
         state.phase === 'placement'
           ? 'Goats cannot be placed or moved'
           : 'Goats have no legal moves';
+      break;
+    case 'repetition':
+      subtitle = 'The same position occurred three times';
       break;
     default: {
       const _exhaustive: never = reason;
@@ -262,7 +301,8 @@ export function applyMove(state: GameState, move: Move): GameState {
     goatsToPlace: state.goatsToPlace,
     phase: state.phase,
     turn: state.turn,
-    winner: null
+    winner: null,
+    positionCounts: state.positionCounts
   };
 
   switch (move.kind) {
@@ -292,8 +332,15 @@ export function applyMove(state: GameState, move: Move): GameState {
     }
   }
 
-  next.winner = checkWinner(next);
-  return next;
+  const recorded = recordPosition(next);
+  const key = positionKey(recorded);
+  if ((recorded.positionCounts[key] ?? 0) >= REPETITION_DRAW_THRESHOLD) {
+    recorded.winner = 'draw';
+    return recorded;
+  }
+
+  recorded.winner = checkWinner(recorded);
+  return recorded;
 }
 
 function movesEqual(a: Move, b: Move): boolean {

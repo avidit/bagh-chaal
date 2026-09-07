@@ -5,6 +5,7 @@
   export let game: GameState;
   export let variantLabel: string;
   export let cpuThinking = false;
+  export let hint: string | null = null;
 
   $: cpuSide = game.humanSide === 'tiger' ? 'Goats' : 'Tiger';
   $: winSummary = getWinSummary(game);
@@ -44,10 +45,17 @@
     {/if}
   </p>
   <div class="mt-3 flex justify-center gap-5 text-sm text-slate-300">
-    <span>Goats left <strong class="text-white">{game.goatsRemaining}</strong></span>
+    {#if game.variant === 'mini'}
+      <span>On board <strong class="text-white">{game.goatsOnBoard}</strong></span>
+    {:else}
+      <span>Goats left <strong class="text-white">{game.goatsRemaining}</strong></span>
+    {/if}
     <span>Captured <strong class="text-white">{game.captures}</strong></span>
     {#if game.variant === 'standard' && game.phase === 'placement'}
       <span>To place <strong class="text-white">{game.goatsToPlace}</strong></span>
     {/if}
   </div>
+  <p class="mt-2 min-h-10 text-xs leading-5 text-amber-200" aria-hidden={!hint}>
+    {hint ?? ''}
+  </p>
 </div>

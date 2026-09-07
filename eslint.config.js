@@ -27,6 +27,19 @@ export default tseslint.config(
     }
   },
   {
-    ignores: ['build/', '.svelte-kit/', 'dist/']
+    ignores: [
+      '.DS_Store',
+      'node_modules/',
+      'build/',
+      '.svelte-kit/',
+      'dist/',
+      'package/',
+      '.env',
+      '.env.*',
+      '!.env.example',
+      'pnpm-lock.yaml',
+      'package-lock.json',
+      'yarn.lock'
+    ]
   }
 );

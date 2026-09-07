@@ -105,6 +105,7 @@ T---o---o---o---T`;
             one at a time, then moved.
           </li>
           <li>Tiger wins after 5 captures; goats win when all four tigers are trapped.</li>
+          <li>Draw if the same position occurs three times.</li>
         </ul>
       </section>
     </div>

@@ -1,6 +1,6 @@
 {
   "name": "bagh-chaal",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "vite dev",
@@ -9,7 +9,7 @@
     "test": "vitest run",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "lint": "prettier --check . && eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write . && eslint . --fix"
   },
   "devDependencies": {
     "@sveltejs/adapter-static": "^3.0.8",

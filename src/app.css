@@ -3,6 +3,16 @@
 @tailwind utilities;
 
 @layer components {
+  .board-node {
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .board-node:focus-visible > rect,
+  .board-node:focus-visible > circle {
+    filter: drop-shadow(0 0 4px #22c55e);
+  }
+
   .ascii-diagram {
     @apply mx-auto block w-fit max-w-full overflow-x-auto rounded bg-slate-800 p-4 font-mono text-sm leading-none text-slate-100;
     font-variant-ligatures: none;
